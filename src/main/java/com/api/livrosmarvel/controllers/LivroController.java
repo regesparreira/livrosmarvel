@@ -24,14 +24,14 @@ public class LivroController {
 	
 
 	@PostMapping("/Cadastrar")
-	public ResponseEntity<Livro> Cadastrar(@RequestBody Livro livro) {
+	public ResponseEntity<Livro> Cadastrar(@RequestBody Livro dados) {
 		try {
 			
-			if (!(livro.getComicId() > 0)) {
+			if (!(dados.getComicId() > 0)) {
 				return ResponseEntity.badRequest().build();
 			}
 
-			Livro obj = livroService.MontarObjetoParaInsercao(livro.getComicId());
+			Livro obj = livroService.MontarObjetoParaInsercao(dados);
 			obj = livroService.Cadastrar(obj);
 			return ResponseEntity.created(null).body(obj);
 		} catch (Exception e) {

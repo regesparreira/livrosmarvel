@@ -3,6 +3,7 @@ package com.api.livrosmarvel.controllers;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,9 +23,12 @@ public class UsuarioController {
 	UsuarioService usuarioService;
 
 	@PostMapping("/Cadastrar")
-	public ResponseEntity<Usuario> Cadastrar(@RequestBody Usuario usuario) {
+	public ResponseEntity Cadastrar(@RequestBody Usuario usuario) {
 		try {
-			// if() {}
+			String mensagemErro = usuarioService.Validar(usuario);
+			if (!mensagemErro.isEmpty())
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mensagemErro);
+
 			Usuario obj = usuarioService.Cadastrar(usuario);
 			return ResponseEntity.created(null).body(obj);
 		} catch (Exception e) {

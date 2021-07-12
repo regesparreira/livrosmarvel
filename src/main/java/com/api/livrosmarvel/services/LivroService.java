@@ -6,11 +6,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.api.livrosmarvel.dtos.LivroDto;
 import com.api.livrosmarvel.entities.Livro;
+import com.api.livrosmarvel.entities.Usuario;
 import com.api.livrosmarvel.repositories.LivroRepository;
 import com.api.livrosmarvel.restservices.RestService;
 
@@ -20,6 +23,9 @@ public class LivroService {
 	@Autowired
 	LivroRepository livroRepository;
 	
+	@Autowired
+	UsuarioService usuarioService;
+
 	@Autowired
 	RestService restService;
 
@@ -44,14 +50,43 @@ public class LivroService {
 		return livros;
 	}
 
-	public Livro Cadastrar(Livro livro) {		
-		return livroRepository.save(livro);
+	public Livro Cadastrar(Livro livro) {
+		Livro livroCadastrado = livroRepository.save(livro);
+		livroCadastrado.setUsuario(usuarioService.BuscarPorId(livroCadastrado.getUsuario().getId()));		
+		
+		return livroCadastrado;
 	}
 
-	public Livro MontarObjetoParaInsercao(int comicId) {
-		String json = restService.BuscarComicsApiMarvel(comicId);
-		System.out.print(json);
-		return new Livro();
+	public Livro MontarObjetoParaInsercao(Livro dados) {
+		String jsonStr = restService.BuscarComicsApiMarvel(dados.getComicId());
+		JSONObject jsonObject = new JSONObject(jsonStr);
+		jsonObject = jsonObject.getJSONObject("data");
+		JSONArray jsonArray = jsonObject.getJSONArray("results");
+		jsonObject = (JSONObject) jsonArray.get(0);
+
+		JSONArray jsonArrayPrices = jsonObject.getJSONArray("prices");
+		JSONObject jsonObjectPrice = (JSONObject) jsonArrayPrices.get(0);
+
+		JSONObject jsonObjectCreators = jsonObject.getJSONObject("creators");
+		JSONArray jsonArrayItems = jsonObjectCreators.getJSONArray("items");
+
+		Livro livro = new Livro();
+		livro.setComicId(dados.getComicId());
+		livro.setTitulo(jsonObject.getString("title"));
+		livro.setDescricao(jsonObject.getString("description"));
+		livro.setIsbn(jsonObject.getString("isbn"));
+		livro.setPreco(jsonObjectPrice.getDouble("price"));
+		livro.setUsuario(dados.getUsuario());
+
+		for (int i = 0; i < jsonArrayItems.length(); i++) {
+			JSONObject jsonObjIterator = jsonArrayItems.getJSONObject(i);
+
+			if (jsonObjIterator.getString("role").equals("writer")) {
+				livro.setAutores(jsonObjIterator.getString("name"));
+			}
+		}
+
+		return livro;
 	}
 
 	public List<LivroDto> MontarListaComDesconto() {
@@ -68,6 +103,13 @@ public class LivroService {
 			livroDto.setIsbn(livro.getIsbn());
 			livroDto.setDescricao(livro.getDescricao());
 			livroDto.setUsuario(livro.getUsuario());
+
+			if(livro.getIsbn().isEmpty() || livro.getIsbn() == null) {
+				livroDto.setDescontoAtivo(false);
+				livroDto.setDiaSemanaDesconto(null);
+				livrosDto.add(livroDto);
+				continue;
+			}
 			
 			String[] listaCodigos = livro.getIsbn().split("");
 			String codigoFinal = listaCodigos[listaCodigos.length];
@@ -98,10 +140,10 @@ public class LivroService {
 				double valorDesconto = (livroDto.getPreco() - 10) / 100;
 				livroDto.setPreco(livroDto.getPreco() - valorDesconto);
 			}
-			
+
 			livrosDto.add(livroDto);
 		}
-		
+
 		return livrosDto;
 	}
 }

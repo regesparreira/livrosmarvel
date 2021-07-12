@@ -14,6 +14,8 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import org.springframework.data.annotation.Transient;
+
 @Entity
 @Table(name = "usuario")
 public class Usuario implements Serializable {
@@ -32,9 +34,10 @@ public class Usuario implements Serializable {
 	
 	private String nome;
 	
-	private Date dataNascimento;	
+	private Date dataNascimento;
 	
-	@OneToMany(mappedBy ="usuario")
+	
+	@OneToMany
 	private List<Livro> livros = new ArrayList<>();
 
 	
